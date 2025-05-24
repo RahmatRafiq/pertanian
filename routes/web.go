@@ -12,14 +12,9 @@ import (
 )
 
 func RegisterRoutes(route *gin.Engine) {
-	// Apply middleware logging untuk semua route
-	// route.Use(middleware.LoggerMiddleware())
-
-	// Public route: Hello World
 	controller := controllers.Controller{}
 	route.GET("", controller.HelloWorld)
 
-	// Public route: Login and Logout (no auth required)
 	authService := services.AuthService{}
 	authController := controllers.NewAuthController(authService)
 	route.PUT("/auth/login", authController.Login)
@@ -31,7 +26,7 @@ func RegisterRoutes(route *gin.Engine) {
 
 	userService := services.UserService{}
 	userController := controllers.NewUserController(userService)
-	userRoutes := route.Group("/users", middleware.AuthMiddleware()) // Protect user routes
+	userRoutes := route.Group("/users", middleware.AuthMiddleware())
 	{
 		userRoutes.GET("", userController.List)
 		userRoutes.GET("/:id", userController.Get)
@@ -41,26 +36,34 @@ func RegisterRoutes(route *gin.Engine) {
 		userRoutes.GET("/:id/roles", userController.GetRoles)
 	}
 
-	// Routes untuk roles (protected by AuthMiddleware)
 	roleService := services.RoleService{}
 	roleController := controllers.NewRoleController(roleService)
-	roleRoutes := route.Group("/roles", middleware.AuthMiddleware()) // Protect role routes
+	roleRoutes := route.Group("/roles", middleware.AuthMiddleware())
 	{
-		roleRoutes.GET("", roleController.List)                               // List roles
-		roleRoutes.PUT("", roleController.Put)                                // Create/Update role
-		roleRoutes.DELETE("/:id", roleController.Delete)                      // Delete role by ID
-		roleRoutes.POST("/:id/permissions", roleController.AssignPermissions) // Assign permissions to role
-		roleRoutes.GET("/:id/permissions", roleController.GetPermissions)     // Get permissions for role
+		roleRoutes.GET("", roleController.List)
+		roleRoutes.PUT("", roleController.Put)
+		roleRoutes.DELETE("/:id", roleController.Delete)
+		roleRoutes.POST("/:id/permissions", roleController.AssignPermissions)
+		roleRoutes.GET("/:id/permissions", roleController.GetPermissions)
 	}
 
-	// Routes untuk permissions (protected by AuthMiddleware)
 	permissionService := services.PermissionService{}
 	permissionController := controllers.NewPermissionController(permissionService)
-	permissionRoutes := route.Group("/permissions", middleware.AuthMiddleware()) // Protect permission routes
+	permissionRoutes := route.Group("/permissions", middleware.AuthMiddleware())
 	{
-		permissionRoutes.GET("", permissionController.List)          // List all permissions
-		permissionRoutes.PUT("", permissionController.Put)           // Create/Update permission
-		permissionRoutes.DELETE("/:id", permissionController.Delete) // Delete permission by ID
+		permissionRoutes.GET("", permissionController.List)
+		permissionRoutes.PUT("", permissionController.Put)
+		permissionRoutes.DELETE("/:id", permissionController.Delete)
+	}
+
+	farmerService := services.FarmerService{}
+	farmerController := controllers.NewFarmerController(farmerService)
+	farmerRoutes := route.Group("/farmers", middleware.AuthMiddleware())
+	{
+		farmerRoutes.GET("", farmerController.List)
+		farmerRoutes.GET("/:id", farmerController.Get)
+		farmerRoutes.PUT("", farmerController.Put)
+		farmerRoutes.DELETE("/:id", farmerController.Delete)
 	}
 
 	fileController := controllers.NewFileController()
@@ -69,9 +72,8 @@ func RegisterRoutes(route *gin.Engine) {
 		fileRoutes.GET("/:key/:filename", fileController.ServeFile)
 	}
 
-	// Endpoint untuk mengecek kesehatan koneksi facades
 	route.GET("/health", func(c *gin.Context) {
-		sqlDB, err := facades.DB.DB() // Mengambil facades/sql *DB dari GORM *DB
+		sqlDB, err := facades.DB.DB()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "Failed to get facades connection",
@@ -80,7 +82,7 @@ func RegisterRoutes(route *gin.Engine) {
 			return
 		}
 
-		err = sqlDB.Ping() // Menggunakan sqlDB untuk ping ke facades
+		err = sqlDB.Ping()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "facades connection failed",
@@ -91,7 +93,7 @@ func RegisterRoutes(route *gin.Engine) {
 
 		c.JSON(200, gin.H{
 			"message": "facades is connected",
-			"facades": "supply_chain_retail", // Sesuaikan dengan nama facades Anda
+			"facades": "supply_chain_retail",
 		})
 	})
 }
